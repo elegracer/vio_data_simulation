@@ -36,3 +36,7 @@ timestamp (1)，imu quaternion(4)，imu position(3)，imu gyro(3)，imu acc(3)
 timestamp (1)，cam quaternion(4)，cam position(3)，imu gyro(3)，imu acc(3)
 
 注意，由于imu和cam的存储采用的是同一个函数，所以cam也会存储一些gyro,acc这些数据，但是没用，是多余存储的。
+
+## simulation for direct tracking
+To cope with direct tracking, image data instead of distinct point should be generated. Thus we modify the project to generate corresponding frames.
+
