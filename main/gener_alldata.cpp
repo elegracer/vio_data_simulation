@@ -6,7 +6,7 @@
 
 #include "../src/imu.h"
 #include "../src/utilities.h"
-
+#include <opencv2/opencv.hpp>
 
 std::vector < std::pair< Eigen::Vector4d, Eigen::Vector4d > >
 CreatePointsLines(std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d> >& points)
@@ -15,7 +15,7 @@ CreatePointsLines(std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::V
     std::vector < std::pair< Eigen::Vector4d, Eigen::Vector4d > > lines;
 
     std::ifstream f;
-    f.open("house_model/house.txt");
+    f.open("../bin/house_model/house.txt");
 
     while(!f.eof())
     {
@@ -77,6 +77,60 @@ CreatePointsLines(std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::V
     return lines;
 }
 
+std::vector<cv::Mat> GenerateImages(const cv::Mat &image, const std::vector< MotionData > &camdata)
+{
+	Param params;
+	std::vector<cv::Mat> vimageWarps;
+	if (!image.data)
+	{
+		std::cerr << "no image is input" << std::endl;
+	}
+
+	Eigen::Matrix3d K;
+	K << params.fx, 0.0, params.cx,
+		0.0, params.fy, params.cy,
+		0.0, 0.0, 1.0;
+	std::vector<Eigen::Vector4d> points;
+	double edge = 12;
+	points.emplace_back(-edge, edge * 3 / 4, 0, 1);
+	points.emplace_back(edge, edge * 3 / 4, 0, 1);
+	points.emplace_back(edge, -edge * 3 / 4, 0, 1);
+	points.emplace_back(-edge, -edge * 3 / 4, 0, 1);
+	std::vector<cv::Point2d> src_pts;
+	src_pts.emplace_back(0, 0);
+	src_pts.emplace_back(640, 0);
+	src_pts.emplace_back(640, 480);
+	src_pts.emplace_back(0, 480);
+	// points obs in image
+	for (int n = 0; n < camdata.size(); ++n)
+	{
+		std::vector<cv::Point2d> dst_pts;
+		MotionData data = camdata[n];
+		Eigen::Matrix4d T_w_c = Eigen::Matrix4d::Identity();
+		T_w_c.block(0, 0, 3, 3) = data.Rwb;
+		T_w_c.block(0, 3, 3, 1) = data.twb;
+
+		// 遍历所有的特征点，看哪些特征点在视野里
+		for (int i = 0; i < points.size(); ++i) {
+			Eigen::Vector4d pw = points[i];//points[i];          // 最后一位存着feature id
+			Eigen::Vector4d pc = T_w_c.inverse() * pw; // T_wc.inverse() * Pw  -- > point in cam frame
+			Eigen::Vector3d image_pt = { pc[0] / pc[3],pc[1] / pc[3] ,pc[2] / pc[3] };
+			image_pt = K * image_pt;
+			image_pt /= image_pt[2];
+			dst_pts.emplace_back(image_pt[0], image_pt[1]);
+		}
+		cv::Mat H = cv::findHomography(src_pts, dst_pts);
+		cv::Mat imageWarp;
+		warpPerspective(image, imageWarp, H, imageWarp.size());
+		cv::imshow("affine image", imageWarp);
+		cv::waitKey(1);
+		vimageWarps.push_back(imageWarp);
+	}
+
+	return std::move(vimageWarps);
+}
+
+
 int main(){
 
     // 生成3d points
@@ -129,6 +183,7 @@ int main(){
     save_Pose("cam_pose.txt",camdata);
     save_Pose_asTUM("cam_pose_tum.txt",camdata);
 
+	auto image_files = GenerateImages(cv::imread("../bin/template.jpg"), camdata);
     // points obs in image
     for(int n = 0; n < camdata.size(); ++n)
     {
@@ -158,7 +213,7 @@ int main(){
 
         // save points
         std::stringstream filename1;
-        filename1<<"keyframe/all_points_"<<n<<".txt";
+        filename1<<"../bin/keyframe/all_points_"<<n<<".txt";
         save_features(filename1.str(),points_cam,features_cam);
     }
 

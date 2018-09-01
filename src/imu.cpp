@@ -4,6 +4,7 @@
 
 #include "imu.h"
 #include "utilities.h"
+#include <random>
 
 // euler2Rotation:   body frame to interitail frame
 Eigen::Matrix3d euler2Rotation( Eigen::Vector3d  eulerAngles)
@@ -77,24 +78,24 @@ MotionData IMU::MotionModel(double t)
 
     MotionData data;
     // param
-    float ellipse_x = 15;
-    float ellipse_y = 20;
-    float z = 1;           // z轴做sin运动
-    float K1 = 10;          // z轴的正弦频率是x，y的k1倍
+    float ellipse_x = 10;
+    float ellipse_y = 10;
+    float z = 8;           // z轴做sin运动
+    float K1 = 2;          // z轴的正弦频率是x，y的k1倍
     float K = M_PI/ 10;    // 20 * K = 2pi 　　由于我们采取的是时间是20s, 系数K控制yaw正好旋转一圈，运动一周
 
     // translation
     // twb:  body frame in world frame
-    Eigen::Vector3d position( ellipse_x * cos( K * t) + 5, ellipse_y * sin( K * t) + 5,  z * sin( K1 * K * t ) + 5);
+    Eigen::Vector3d position( ellipse_x * cos( K * t) + 5, ellipse_y * sin( K * t) + 5,  z * sin( K1 * K * t ) + 20);
     Eigen::Vector3d dp(- K * ellipse_x * sin(K*t),  K * ellipse_y * cos(K*t), z*K1*K * cos(K1 * K * t));              // position导数　in world frame
     double K2 = K*K;
     Eigen::Vector3d ddp( -K2 * ellipse_x * cos(K*t),  -K2 * ellipse_y * sin(K*t), -z*K1*K1*K2 * sin(K1 * K * t));     // position二阶导数
 
     // Rotation
-    double k_roll = 0.1;
-    double k_pitch = 0.2;
-    Eigen::Vector3d eulerAngles(k_roll * cos(t) , k_pitch * sin(t) , K*t );   // roll ~ [-0.2, 0.2], pitch ~ [-0.3, 0.3], yaw ~ [0,2pi]
-    Eigen::Vector3d eulerAnglesRates(-k_roll * sin(t) , k_pitch * cos(t) , K);      // euler angles 的导数
+    double k_roll = 0;
+    double k_pitch = 0;
+    Eigen::Vector3d eulerAngles(0 , -1.1 , K*t );   // roll ~ [-0.2, 0.2], pitch ~ [-0.3, 0.3], yaw ~ [0,2pi]
+    Eigen::Vector3d eulerAnglesRates(0 , 0 , K);      // euler angles 的导数
 
     Eigen::Matrix3d Rwb = euler2Rotation(eulerAngles);         // body frame to world frame
     Eigen::Vector3d imu_gyro = eulerRates2bodyRates(eulerAngles) * eulerAnglesRates;   //  euler rates trans to body gyro

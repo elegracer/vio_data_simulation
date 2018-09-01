@@ -19,7 +19,7 @@ public:
     double imu_timestep = 1./imu_frequency;
     double cam_timestep = 1./cam_frequency;
     double t_start = 0;
-    double t_end = 20;  //  20 s
+    double t_end = 40;  //  20 s
 
     // noise
     double gyro_bias_sigma = 1.0e-5;
@@ -33,10 +33,10 @@ public:
     // cam f
     double fx = 460;
     double fy = 460;
-    double cx = 255;
-    double cy = 255;
+    double cx = 320;
+    double cy = 240;
     double image_w = 640;
-    double image_h = 640;
+    double image_h = 480;
 
 
     // 外参数
