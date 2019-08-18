@@ -1,30 +1,46 @@
-SET (PROJECT_NAME imuSimWithPointLine)
+cmake_minimum_required(VERSION 3.13)
 
-PROJECT(${PROJECT_NAME})
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+project(vio_data_simulation
+    VERSION 0.0.1
+    LANGUAGES CXX
+)
 
-SET(CMAKE_BUILD_TYPE Debug) # Release, RelWithDebInfo , Debug
-
-SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 -march=native")
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake_modules/")
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(Eigen3 REQUIRED)
-FIND_PACKAGE(OpenCV REQUIRED)
+find_package(OpenCV REQUIRED)
 
-include_directories(
-${EIGEN3_INCLUDE_DIR}
-${OPENCV_INCLUDE_DIR}
+add_library(viosim)
+target_sources(viosim
+    PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}/src/viosim/imu.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/src/viosim/param.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/src/viosim/utility.cpp
+)
+target_include_directories(viosim
+    PUBLIC
+        ${CMAKE_CURRENT_LIST_DIR}/include
+)
+target_compile_features(viosim
+    PUBLIC
+        cxx_std_17
+)
+target_link_libraries(viosim
+    PUBLIC
+        Eigen3::Eigen
 )
 
-LIST(APPEND LINK_LIBS
-${OpenCV_LIBS}
+add_executable(gen_data)
+target_sources(gen_data
+    PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}/utils/generate_data.cpp
 )
-
-ADD_EXECUTABLE(data_gen main/gener_alldata.cpp src/param.h src/param.cpp src/utilities.h src/utilities.cpp src/imu.h src/imu.cpp)
-TARGET_LINK_LIBRARIES (data_gen ${LINK_LIBS})
-
+target_include_directories(gen_data
+    PRIVATE
+        ${OpenCV_INCLUDE_DIRS}
+)
+target_link_libraries(gen_data
+    PRIVATE
+        viosim
+        ${OpenCV_LIBS}
+)
