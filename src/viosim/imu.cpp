@@ -161,25 +161,38 @@ void IMUGenerator::testIMU(std::string src, std::string dst) {
     vector<3> vw = init_velocity; // velocity:     from imu measurements
     vector<3> gw(0, 0, -9.81);    // ENU frame
 
+#if 0
     for (int i = 0; i < imudata.size(); ++i) {
-        MotionData imu = imudata[i];
+        MotionData imu_i = imudata[i];
 
-        // std::cout << imu.imu_gyro.transpose() << ", "
-        //           << imu.imu_gyro_bias.transpose() << ", "
-        //           << imu.imu_acc.transpose() << ", "
-        //           << imu.imu_acc_bias.transpose() << "\n";
-
-        // delta_q = [1, 1/2 * theta_x, 1/2 * theta_y, 1/2 * theta_z]
+        // IMU kinematics
+        // 1. Euler Integral
+        // omega = gyro_body - gyro_bias
+        vector<3> omega = imu_i.imu_gyro - imu_i.imu_gyro_bias;
+        // dq = [1, 0.5 * omega * dt]
         quaternion dq;
-        vector<3> dtheta_half = 0.5 * (imu.imu_gyro - imu.imu_gyro_bias) * dt;
         dq.w() = 1;
-        dq.vec() = dtheta_half;
+        dq.vec() = 0.5 * omega * dt;
+        // aw = qwb * (acc_body - acc_bias) + gw
+        vector<3> aw = qwb * (imu_i.imu_acc - imu_i.imu_acc_bias) + gw;
+#else
+    for (int i = 0; i < imudata.size() - 1; ++i) {
+        MotionData imu_i = imudata[i];
+        MotionData imu_j = imudata[i + 1];
 
-        // IMU kinematics, euler integral
-        // aw = Rwb * (acc_body - acc_bias) + gw
-        vector<3> acc_w = qwb * (imu.imu_acc - imu.imu_acc_bias) + gw;
-        pwb = pwb + vw * dt + 0.5 * acc_w * dt * dt;
-        vw = vw + acc_w * dt;
+        // IMU kinematics
+        // 2. Midpoint Integral
+        // omega = 0.5 * [(gyro_body_i - gyro_bias_i) + (gyro_body_j - gyro_bias_i)]
+        vector<3> omega = 0.5 * (imu_i.imu_gyro - imu_i.imu_gyro_bias + imu_j.imu_gyro - imu_i.imu_gyro_bias);
+        // dq = [1, 0.5 * omega * dt]
+        quaternion dq;
+        dq.w() = 1;
+        dq.vec() = 0.5 * omega * dt;
+        // aw = 0.5 * [qwbi * (acc_body_i - acc_bias_i) + gw + qwbj * (acc_body_j - acc_bias_i) + gw]
+        vector<3> aw = 0.5 * (qwb * (imu_i.imu_acc - imu_i.imu_acc_bias) + gw + qwb * dq * (imu_j.imu_acc - imu_i.imu_acc_bias) + gw);
+#endif
+        pwb = pwb + vw * dt + 0.5 * aw * dt * dt;
+        vw = vw + aw * dt;
         qwb = qwb * dq;
 
         qwc = qwb * qbc;
@@ -187,7 +200,7 @@ void IMUGenerator::testIMU(std::string src, std::string dst) {
 
         // format: imu postion, imu quaternion, cam postion, cam quaternion
         save_points.precision(9);
-        save_points << imu.timestamp << ", "
+        save_points << imu_i.timestamp << ", "
                     << pwb.x() << ", "
                     << pwb.y() << ", "
                     << pwb.z() << ", "
