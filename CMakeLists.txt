@@ -30,6 +30,7 @@ target_link_libraries(viosim
         Eigen3::Eigen
 )
 
+
 add_executable(gen_data)
 target_sources(gen_data
     PRIVATE
@@ -40,6 +41,22 @@ target_include_directories(gen_data
         ${OpenCV_INCLUDE_DIRS}
 )
 target_link_libraries(gen_data
+    PRIVATE
+        viosim
+        ${OpenCV_LIBS}
+)
+
+
+add_executable(gen_static_data)
+target_sources(gen_static_data
+    PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}/utils/generate_static_data.cpp
+)
+target_include_directories(gen_static_data
+    PRIVATE
+        ${OpenCV_INCLUDE_DIRS}
+)
+target_link_libraries(gen_static_data
     PRIVATE
         viosim
         ${OpenCV_LIBS}
