@@ -6,6 +6,14 @@ IMU和Camera数据仿真，用于VIO算法测试。
 
 ![demo pic](data/demo.png)
 
+## 编译和运行
+
+依赖：
+
+1. CMake >= 3.13
+2. 支持C++17标准的编译器
+3. Python 3，并装有numpy和matplotlib。默认使用TkAgg可视化，请根据环境修改.py文件。
+
 ## 坐标系
 
 - **B**ody frame: IMU坐标系
@@ -20,29 +28,39 @@ IMU和Camera数据仿真，用于VIO算法测试。
 
 ## 代码结构
 
-utils/generate_data.cpp：用于生成IMU数据，相机轨迹，特征点像素坐标，特征点的3d坐标
+include/imu.h：IMU数据项的结构，IMU数据生成器的结构。
 
-include/paramc.h：IMU噪声参数，IMU频率，相机内参数等等
+include/param.h：IMU噪声参数，IMU频率，相机内参数等等。
 
-python/：文件夹里为可视化工具，draw_points.py就是动态绘制相机轨迹和观测到的特征点，依赖`numpy matplotlib`。
+include/utility.h：读取和写入数据的函数。
+
+utils/generate_data.cpp：用于生成IMU数据，相机轨迹，特征点像素坐标，特征点的3d坐标。
+
+python/draw_points.py：动态绘制相机轨迹和观测到的特征点。
+
+python/draw_trajectory.py：绘制真实轨迹、无噪声积分得到的轨迹、有噪声积分得到的轨迹。
 
 ## 数据存储的格式
+
+### 3D点
+
+> x, y, z, 1
 
 ### 特征点
 
 > x, y, z, 1, u, v
 
-每个特征出现在文件里的顺序，就是他们独立的id，可用来检索特征匹配。
+### 2D线段
 
-### IMU data
+> u1, v1, u2, v2
 
-> timestamp(1), imu_quaternion(4), imu_position(3), imu_gyro(3), imu_acc(3)
+### IMU Poses
 
-### Camera data
+> t, px, py, pz, qx, qy, qz, qw, ax, ay, az, gx, gy, gz, bax, bay, baz, bgx, bgy, bgz
 
-> timestamp(1), cam_quaternion(4), cam_position(3), imu_gyro(3), imu_acc(3)
+### IMU Poses TUM Format
 
-注意，由于IMU和Camera的存储采用的是同一个函数，所以Camera data也会存储一些`gyro, acc`这些数据，但是没用，是多余存储的。
+> t, px, py, pz, qx, qy, qz, qw
 
 ## Simulation for direct tracking
 
